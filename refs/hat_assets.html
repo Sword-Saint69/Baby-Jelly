@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Milliner's Table — TSL Object Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#262015; --muted:#6f6250; --bone:#e9e1d1;
+    --line:rgba(38,32,21,.16); --brass:#8f6f38;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; overflow:hidden; background:var(--bone); color:var(--ink);
+    font-family:"IBM Plex Mono", monospace; }
+  canvas{ position:fixed; inset:0; display:block; }
+
+  /* film grain */
+  .grain{ position:fixed; inset:0; z-index:5; pointer-events:none; opacity:.055; mix-blend-mode:multiply;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"/></filter><rect width="160" height="160" filter="url(%23n)" opacity="0.6"/></svg>'); }
+
+  .hud{ position:fixed; z-index:10; pointer-events:none; }
+  .hud-top{ top:0; left:0; right:0; padding:30px 38px; display:flex; justify-content:space-between; align-items:flex-start; }
+  .eyebrow{ font-size:10px; letter-spacing:.30em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:12px; }
+  .eyebrow::before{ content:""; width:28px; height:1px; background:var(--brass); }
+  h1{ font-family:"Fraunces", serif; font-weight:340; font-size:clamp(30px,4.4vw,52px);
+      line-height:1.02; letter-spacing:-.01em; margin-top:12px; }
+  h1 em{ font-style:italic; font-weight:420; }
+  .sub{ margin-top:10px; font-size:11px; color:var(--muted); max-width:420px; line-height:1.6; }
+  .badge{ font-size:10px; letter-spacing:.18em; color:var(--muted); border:1px solid var(--line);
+      border-radius:999px; padding:8px 14px; background:rgba(238,231,217,.55); backdrop-filter:blur(6px); }
+
+  .card{ position:fixed; z-index:10; left:38px; bottom:118px; width:min(370px,72vw);
+      background:rgba(240,234,222,.78); backdrop-filter:blur(8px);
+      border:1px solid var(--line); border-left:2px solid var(--brass);
+      padding:16px 20px 15px; pointer-events:none;
+      transition:transform .45s cubic-bezier(.2,.8,.2,1), opacity .45s; }
+  .card-num{ font-size:10px; letter-spacing:.26em; color:var(--brass); }
+  .card-name{ font-family:"Fraunces", serif; font-style:italic; font-weight:420; font-size:24px; margin:5px 0 7px; }
+  .card-note{ font-size:10.5px; line-height:1.6; color:var(--muted); }
+
+  .hud-bottom{ bottom:0; left:0; right:0; padding:0 38px 24px; display:flex; justify-content:space-between; align-items:flex-end; }
+  .menu{ display:flex; gap:2px; pointer-events:auto; }
+  .menu button{ position:relative; background:transparent; border:0; border-top:1px solid var(--line);
+      padding:12px 26px 8px; text-align:left; cursor:pointer; }
+  .menu button::after{ content:""; position:absolute; top:-1px; left:0; right:0; height:2px;
+      background:var(--brass); transform:scaleX(0); transform-origin:left; transition:transform .35s cubic-bezier(.2,.8,.2,1); }
+  .menu button .n{ display:block; font-size:10px; letter-spacing:.22em; color:var(--muted); margin-bottom:4px; }
+  .menu button .t{ font-family:"Fraunces", serif; font-size:19px; color:#4a4133; transition:color .25s; }
+  .menu button:hover .t{ color:var(--ink); }
+  .menu button.active::after{ transform:scaleX(1); }
+  .menu button.active .t{ color:var(--ink); }
+  .meta{ text-align:right; pointer-events:auto; }
+  .ghost{ font-family:inherit; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted);
+      border:1px solid var(--line); border-radius:999px; padding:9px 16px; cursor:pointer;
+      background:rgba(238,231,217,.55); transition:border-color .25s, color .25s; }
+  .ghost:hover{ border-color:var(--brass); color:var(--ink); }
+  .hint{ margin-top:10px; font-size:10px; color:var(--muted); letter-spacing:.08em; }
+
+  #loader{ position:fixed; inset:0; z-index:50; background:var(--bone); display:flex; align-items:center; justify-content:center;
+      transition:opacity .7s ease .15s; }
+  #loader.done{ opacity:0; pointer-events:none; }
+  .l-inner{ text-align:center; }
+  .l-title{ font-family:"Fraunces", serif; font-style:italic; font-size:26px; }
+  .l-bar{ width:170px; height:1px; background:var(--line); margin:18px auto 12px; overflow:hidden; position:relative; }
+  .l-bar i{ position:absolute; top:0; left:-40%; width:40%; height:100%; background:var(--brass); animation:sweep 1.1s linear infinite; }
+  @keyframes sweep{ to{ left:100%; } }
+  .l-sub{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); }
+
+  @media (max-width:760px){
+    .sub,.hint,.badge{ display:none; }
+    .hud-top{ padding:22px; } .hud-bottom{ padding:0 22px 18px; }
+    .menu button{ padding:10px 14px 6px; } .menu button .t{ font-size:15px; }
+    .card{ left:22px; right:22px; width:auto; bottom:96px; }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.module.js",
+    "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.webgpu.js",
+    "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<header class="hud hud-top">
+  <div class="brand">
+    <div class="eyebrow">Object study · procedural geometry · TSL shading</div>
+    <h1>The Milliner&rsquo;s <em>Table</em></h1>
+    <p class="sub">Three headdresses grown entirely from code — a flower crown, a six-panel casquette and a felt top hat — felted, woven and stitched with node materials.</p>
+  </div>
+  <div class="badge" id="badge">WebGPU · three.js TSL</div>
+</header>
+
+<aside class="card" id="card">
+  <div class="card-num" id="cardNum">№ —</div>
+  <div class="card-name" id="cardName">The Milliner&rsquo;s Table</div>
+  <div class="card-note" id="cardNote">Click a piece to bring it forward. Drag to orbit, scroll to zoom, space pauses the turntables.</div>
+</aside>
+
+<footer class="hud hud-bottom">
+  <nav class="menu" id="menu">
+    <button data-id="0"><span class="n">01</span><span class="t">Flower Crown</span></button>
+    <button data-id="1"><span class="n">02</span><span class="t">Baseball Cap</span></button>
+    <button data-id="2"><span class="n">03</span><span class="t">Top Hat</span></button>
+  </nav>
+  <div class="meta">
+    <button class="ghost" id="spinBtn">Turntable · On</button>
+    <div class="hint">keys 1 · 2 · 3 to focus — esc pulls back</div>
+  </div>
+</footer>
+
+<div id="loader"><div class="l-inner">
+  <div class="l-title">The Milliner&rsquo;s Table</div>
+  <div class="l-bar"><i></i></div>
+  <div class="l-sub">dressing the table</div>
+</div></div>
+
+<script type="module">
+import * as THREE from 'three/webgpu';
+import {
+  attribute, uv, positionLocal, mix, smoothstep, step, fract, abs, min, max, clamp,
+  length, pow, sin, cos, atan, float, vec2, color, mx_noise_float, mx_fractal_noise_float, screenUV
+} from 'three/tsl';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* ---------------------------------------------------------------- helpers */
+
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const rng = mulberry32(20250419);
+const UP = new THREE.Vector3(0, 1, 0);
+const ZERO = new THREE.Vector3();
+
+// per-element tint attribute consumed by TSL via attribute('aTint','vec3')
+function tinted(geo, c){
+  const n = geo.attributes.position.count;
+  const a = new Float32Array(n * 3);
+  for(let i = 0; i < n; i++){ a[i*3] = c.r; a[i*3+1] = c.g; a[i*3+2] = c.b; }
+  geo.setAttribute('aTint', new THREE.BufferAttribute(a, 3));
+  return geo;
+}
+
+// bake meshes of a temp hierarchy into plain geometries (world matrices applied)
+const bakeRoot = new THREE.Group();
+function bakeMesh(mesh, list, tint, jitter = 0.06){
+  mesh.updateWorldMatrix(true, false);
+  const g = mesh.geometry.clone();
+  g.applyMatrix4(mesh.matrixWorld);
+  tinted(g, tint.clone().multiplyScalar(1 + (rng() * 2 - 1) * jitter));
+  list.push(g);
+}
+
+/* ------------------------------------------------------- small geometries */
+
+function makePetalGeometry(L, W, segW = 7, segL = 11){
+  const g = new THREE.PlaneGeometry(W, L, segW, segL);
+  g.translate(0, L * 0.5, 0);
+  const pos = g.attributes.position;
+  for(let i = 0; i < pos.count; i++){
+    const x0 = pos.getX(i), y = pos.getY(i), t = y / L;
+    const o = Math.pow(Math.max(0, Math.sin(Math.PI * Math.pow(t, 0.68))), 0.85);
+    const x = x0 * (0.16 + 0.84 * o);                 // rounded petal silhouette
+    let z = (x * x) / (W * W) * 0.34 * L;             // cup across the width
+    z += Math.sin(t * Math.PI) * 0.08 * L;            // gentle lengthwise arc
+    z += Math.pow(t, 2.0) * 0.26 * L;                 // tip opens forward
+    pos.setXYZ(i, x, y, z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+function makeLeafGeometry(L, W, segW = 5, segL = 9){
+  const g = new THREE.PlaneGeometry(W, L, segW, segL);
+  g.translate(0, L * 0.5, 0);
+  const pos = g.attributes.position;
+  for(let i = 0; i < pos.count; i++){
+    const x0 = pos.getX(i), y = pos.getY(i), t = y / L;
+    const o = Math.pow(Math.max(0, Math.sin(Math.PI * Math.pow(t, 0.60))), 0.9);
+    const x = x0 * (0.06 + 0.94 * o);
+    let z = Math.abs(x) * 0.85;                       // fold along the midrib
+    z += Math.sin(t * Math.PI) * 0.10 * L;            // arch
+    pos.setXYZ(i, x, y, z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+// a small helix wound around a circle — wrapped willow twine
+class VineCurve extends THREE.Curve{
+  constructor(R, wr, wraps, phase){ super(); this.R = R; this.wr = wr; this.wraps = wraps; this.phase = phase; }
+  getPoint(t, target = new THREE.Vector3()){
+    const a = t * Math.PI * 2, w = t * this.wraps * Math.PI * 2 + this.phase;
+    const ca = Math.cos(a), sa = Math.sin(a), ox = Math.cos(w) * this.wr;
+    return target.set(ca * (this.R + ox), Math.sin(w) * this.wr, sa * (this.R + ox));
+  }
+}
+
+// upward sweep for the cap visor (applied identically to brim and its bound edge)
+function bendBrim(geo){
+  const p = geo.attributes.position;
+  for(let i = 0; i < p.count; i++){
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const d = Math.max(0, z - 0.75) / 0.85;
+    p.setY(i, y + 0.16 * Math.pow(d, 1.9) + 0.015 * d * Math.abs(x));
+  }
+}
+
+/* ------------------------------------------------------------- materials */
+
+const thin = (d, w) => smoothstep(w, w * 2.2, d).oneMinus(); // 1 inside width w, soft edge
+
+function makePetalMaterial(){
+  const m = new THREE.MeshPhysicalNodeMaterial({
+    side: THREE.DoubleSide, roughness: 0.55, sheen: 1.0, sheenRoughness: 0.42,
+    sheenColor: new THREE.Color(0xffddcb), specularIntensity: 0.4
+  });
+  const tint = attribute('aTint', 'vec3'), U = uv(), p = positionLocal, t = U.y;
+  const grad = smoothstep(0.05, 0.72, t);
+  const base = tint.mul(0.42).add(color(0.105, 0.05, 0.058)); // deepened hue toward the throat
+  let col = mix(base, tint, grad);
+  const vein = pow(abs(sin(U.x.sub(0.5).mul(16.0).sub(t.mul(2.4)))), 24.0)
+                 .mul(smoothstep(0.10, 0.45, t)).mul(0.15);
+  col = col.mul(vein.oneMinus());
+  col = col.add(mx_noise_float(p.mul(50.0)).mul(0.03));
+  col = col.add(smoothstep(0.0, 0.09, U.x.sub(0.5).abs()).oneMinus().mul(0.05)); // crease sheen
+  m.colorNode = col;
+  m.roughnessNode = float(0.58).sub(smoothstep(0.55, 1.0, t).mul(0.20))
+                               .add(mx_noise_float(p.mul(90.0)).mul(0.05));
+  return m;
+}
+
+function makeLeafMaterial(){
+  const m = new THREE.MeshPhysicalNodeMaterial({
+    side: THREE.DoubleSide, roughness: 0.45, sheen: 0.5,
+    sheenRoughness: 0.5, sheenColor: new THREE.Color(0xa9c07f)
+  });
+  const tint = attribute('aTint', 'vec3'), U = uv(), p = positionLocal;
+  const mid = U.x.sub(0.5).abs(), t = U.y;
+  const body = tint.mul(smoothstep(0.0, 1.0, t).mul(0.45).add(0.68));
+  const midrib = smoothstep(0.012, 0.05, mid).oneMinus();
+  const side = pow(abs(sin(mid.mul(46.0).sub(t.mul(10.0)))), 20.0)
+                 .mul(smoothstep(0.12, 0.55, t)).mul(0.13);
+  let col = body.add(midrib.mul(0.14)).add(side).add(mx_noise_float(p.mul(30.0)).mul(0.05));
+  col = mix(col, col.mul(0.78), smoothstep(0.34, 0.5, mid)); // darker rim
+  m.colorNode = col;
+  m.roughnessNode = float(0.45).add(mx_noise_float(p.mul(70.0)).mul(0.10));
+  return m;
+}
+
+function makeVineMaterial(){
+  const m = new THREE.MeshPhysicalNodeMaterial({ roughness: 0.72 });
+  const tint = attribute('aTint', 'vec3'), U = uv(), p = positionLocal;
+  const f = fract(U.x.mul(150.0)).mul(2.0).sub(1.0).abs(); // fibre ridges along the wrap
+  const shade = f.mul(f).mul(0.20).add(0.80);
+  m.colorNode = mix(tint.mul(0.55), tint.mul(1.18), shade).add(mx_noise_float(p.mul(45.0)).mul(0.07));
+  m.roughnessNode = float(0.72).add(mx_noise_float(p.mul(35.0)).mul(0.10));
+  return m;
+}
+
+function makePollenMaterial(){
+  const m = new THREE.MeshPhysicalNodeMaterial({ roughness: 0.85 });
+  const tint = attribute('aTint', 'vec3'), p = positionLocal;
+  m.colorNode = tint.mul(mx_noise_float(p.mul(70.0)).mul(0.35).add(0.85))
+                    .add(mx_fractal_noise_float(p.mul(160.0)).mul(0.05));
+  return m;
+}
+
+function makeDomeMaterial(){
+  const m = new THREE.MeshPhysicalNodeMaterial({
+    roughness: 0.85, sheen: 0.55, sheenRoughness: 0.65, sheenColor: new THREE.Color(0xf4ecd8)
+  });
+  const U = uv(), p = positionLocal;
+  const weave = sin(U.x.mul(360.0)).mul(sin(U.y.mul(560.0)));
+  const micro = mx_fractal_noise_float(p.mul(90.0));
+  let col = mix(color(0xd8caa9), color(0xefe5cb),
+                weave.mul(0.5).add(0.5).mul(0.10).add(micro.mul(0.5).add(0.5).mul(0.12)));
+
+  // embroidered star + dashed ring, planar coords on the front panel
+  const q = vec2(p.x, p.y.add(0.06)).mul(7.2);
+  const rq = length(q), aq = atan(q.y, q.x);              // TSL atan(y, x) — not atan2
+  const emblemZone = smoothstep(0.9, 1.25, rq).oneMinus();
+  const starL = pow(abs(cos(aq.mul(2.5))), 3.0).mul(0.16).add(0.34);
+  const starM = smoothstep(-0.03, 0.03, starL.sub(rq));
+  const dashE = step(0.55, fract(aq.mul(1.909)));
+  const ringM = thin(abs(rq.sub(0.78)), 0.045).mul(dashE);
+  const emb = clamp(starM.mul(0.95).add(ringM), 0.0, 1.0).mul(emblemZone);
+  col = mix(col, color(0x6e7d58), emb);
+
+  // six pressed panel seams with tonal stitching
+  const sf = fract(U.x.mul(6.0));
+  const sd = min(sf, sf.oneMinus());
+  const seamFade = smoothstep(0.70, 0.95, U.y).oneMinus();
+  col = mix(col, col.mul(0.90), thin(sd, 0.022).mul(seamFade).mul(emblemZone));
+  const seamStitch = thin(sd, 0.0075).mul(step(0.5, fract(U.y.mul(30.0)))).mul(seamFade).mul(emblemZone);
+  col = mix(col, color(0xb49f72), seamStitch);
+
+  // double stitch ring above the bound edge
+  const dashH = step(0.5, fract(U.x.mul(220.0)));
+  col = mix(col, color(0xb49f72),
+            max(thin(abs(U.y.sub(0.045)), 0.007), thin(abs(U.y.sub(0.082)), 0.007)).mul(dashH));
+
+  m.colorNode = col;
+  m.roughnessNode = float(0.86).sub(weave.mul(0.05)).add(micro.mul(0.08));
+  return m;
+}
+
+function makeBrimMaterial(){
+  const m = new THREE.MeshPhysicalNodeMaterial({
+    side: THREE.DoubleSide,
+    roughness: 0.8, sheen: 0.5, sheenRoughness: 0.6, sheenColor: new THREE.Color(0xdfe4cf)
+  });
+  const p = positionLocal;
+  const w = sin(p.x.mul(110.0)).mul(sin(p.z.mul(110.0)));
+  const micro = mx_fractal_noise_float(p.mul(60.0));
+  m.colorNode = mix(color(0x76845e), color(0x8b9970),
+                    w.mul(0.5).add(0.5).mul(0.10).add(micro.mul(0.5).add(0.5).mul(0.12)));
+  m.roughnessNode = float(0.80).sub(w.mul(0.05)).add(micro.mul(0.08));
+  return m;
+}
+
+function makeThreadMaterial(){
+  const m = new THREE.MeshPhysicalNodeMaterial({ roughness: 0.62 });
+  m.colorNode = color(0xebe0c4).mul(sin(uv().x.mul(300.0)).mul(0.5).add(0.5).mul(0.18).add(0.86));
+  return m;
+}
+
+function makeFeltMaterial(){
+  const m = new THREE.MeshPhysicalNodeMaterial({
+    roughness: 0.6, sheen: 0.9, sheenRoughness: 0.5, sheenColor: new THREE.Color(0x8d8070)
+  });
+  const p = positionLocal;
+  const fuzz = mx_fractal_noise_float(p.mul(150.0));
+  const blotch = mx_fractal_noise_float(p.mul(7.0));
+  m.colorNode = color(0x38322b).mul(blotch.mul(0.5).add(0.5).mul(0.22).add(0.90)).add(fuzz.mul(0.015));
+  m.roughnessNode = float(0.60).add(fuzz.mul(0.16));
+  return m;
+}
+
+function makeSatinMaterial(){
+  const m = new THREE.MeshPhysicalNodeMaterial({
+    roughness: 0.3, sheen: 1.0, sheenRoughness: 0.28, sheenColor: new THREE.Color(0x9c8c74)
+  });
+  const sheen = pow(sin(uv().x.mul(600.0)).mul(0.5).add(0.5), 3.0).mul(0.08);
+  m.colorNode = color(0x191512).add(color(0x8a7a63).mul(sheen));
+  m.roughnessNode = clamp(float(0.30).sub(sheen.mul(1.2)), 0.12, 0.5);
+  return m;
+}
+
+function makeStandardPlain(hex, rough, noiseScale, noiseAmt){
+  const m = new THREE.MeshStandardNodeMaterial({ roughness: rough });
+  const n = mx_fractal_noise_float(positionLocal.mul(noiseScale));
+  m.colorNode = color(hex).mul(n.mul(0.5).add(0.5).mul(noiseAmt).add(1.0 - noiseAmt * 0.5));
+  m.roughnessNode = float(rough).add(n.mul(0.08));
+  return m;
+}
+
+/* ------------------------------------------------------------ scene build */
+
+let renderer, scene, camera, controls;
+const items = [];
+let hovered = -1, selected = -1, transitioning = false, spinOn = true;
+const desired = { target: new THREE.Vector3(), pos: new THREE.Vector3() };
+const tmpV = new THREE.Vector3();
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+
+const ITEM_DEFS = [
+  { num: '№ 01', name: 'Flower Crown', focus: [-3.6, 1.15, 0.15], dist: 4.9, spin: 0.22,
+    note: 'Seven blossoms — dusty rose, cream and butter — on a double-wound willow vine. Petal gradients, venation and pollen are procedural TSL blends over sheened physical materials.' },
+  { num: '№ 02', name: 'Baseball Cap', focus: [3.6, 2.15, 0.15], dist: 4.7, spin: 0.30,
+    note: 'An ecru six-panel canvas crown over a sage visor with bound edge and tonal stitching. Weave, seams, bottom stitching and the embroidered star are all generated in TSL.' },
+  { num: '№ 03', name: 'Top Hat', focus: [0, 2.3, -0.15], dist: 5.6, spin: 0.15,
+    note: 'Charcoal felt on a gently curled brim with a grosgrain band. Felt nap and satin sheen are driven by fractal-noise roughness in TSL; the silhouette is pure lathe profiles.' }
+];
+const DEFAULT_NOTE = 'Click a piece to bring it forward. Drag to orbit, scroll to zoom, space pauses the turntables.';
+
+function buildEnvScene(){
+  const s = new THREE.Scene();
+  s.add(new THREE.Mesh(new THREE.SphereGeometry(30, 16, 12),
+        new THREE.MeshBasicMaterial({ color: 0x241f19, side: THREE.BackSide })));
+  const panel = (w, h, c, i, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(i) }));
+    m.position.set(x, y, z); m.lookAt(0, 0.8, 0); s.add(m);
+  };
+  panel(10, 6, 0xfff0dd, 5.0, 0, 9, 2);     // key softbox overhead
+  panel(4, 8, 0xffe3c2, 2.6, -9, 3.5, 3);   // warm left strip
+  panel(3, 8, 0xe3e1da, 1.4, 9, 3, -2);     // neutral right strip
+  panel(8, 3, 0xd9d0c0, 0.9, 0, 4, -10);    // back fill
+  panel(14, 14, 0xb9ab90, 0.55, 0, -3, 0);  // floor bounce
+  return s;
+}
+
+/* ------------------------------------------------------- crown construction */
+
+function buildCrown(petalMat, leafMat, vineMat, pollenMat){
+  const R = 1.05;
+  const petalGeos = [], centerGeos = [], leafGeos = [], budGeos = [];
+
+  // vine core + two wound strands (woven braid)
+  const coreGeo = new THREE.TorusGeometry(R, 0.062, 18, 160); coreGeo.rotateX(Math.PI / 2);
+  const core = new THREE.Mesh(tinted(coreGeo, new THREE.Color(0x4f3c2b)), vineMat);
+  const v1 = new THREE.Mesh(tinted(new THREE.TubeGeometry(new VineCurve(R, 0.078, 56, 0), 720, 0.030, 8),
+        new THREE.Color(0x8a6a45)), vineMat);
+  const v2 = new THREE.Mesh(tinted(new THREE.TubeGeometry(new VineCurve(R, 0.078, 56, Math.PI), 720, 0.030, 8),
+        new THREE.Color(0x715637)), vineMat);
+
+  const PALETTE = [0xe08e86, 0xf1e4cc, 0xe8c274, 0xd9776e].map(h => new THREE.Color(h));
+  const POLLEN = new THREE.Color(0xe0a83c), POLLEN_DEEP = new THREE.Color(0xb97f2a);
+  const BUD = new THREE.Color(0xc96a62);
+
+  function buildFlower(angle, scale, tint){
+    const head = new THREE.Group();
+    const out = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+    const face = out.clone().multiplyScalar(0.62).addScaledVector(UP, 0.85).normalize();
+    head.position.set(out.x * R, Math.sin(angle * 3.1) * 0.03, out.z * R);
+    head.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(ZERO, face.clone().negate(), UP));
+    head.rotateZ(rng() * Math.PI * 2);
+    bakeRoot.add(head);
+
+    const gOuter = makePetalGeometry(0.36 * scale, 0.245 * scale, 7, 11);
+    const gInner = makePetalGeometry(0.23 * scale, 0.17 * scale, 5, 9);
+    const ring = (geo, count, pitch, rad, z0) => {
+      for(let i = 0; i < count; i++){
+        const m = new THREE.Mesh(geo);
+        const a = i / count * Math.PI * 2 + (rng() - 0.5) * 0.18;
+        m.position.set(Math.cos(a) * rad, Math.sin(a) * rad, z0);
+        m.rotation.order = 'ZXY';
+        m.rotation.set(pitch + (rng() - 0.5) * 0.16, 0, a - Math.PI / 2);
+        head.add(m);
+        bakeMesh(m, petalGeos, tint);
+      }
+    };
+    ring(gOuter, 6, 0.30, 0.030 * scale, 0.008 * scale);
+    ring(gInner, 5, 0.72, 0.012 * scale, 0.020 * scale);
+
+    const cGeo = new THREE.SphereGeometry(0.052 * scale, 14, 10); cGeo.scale(1, 1, 0.55);
+    const c = new THREE.Mesh(cGeo); c.position.set(0, 0, 0.045 * scale); head.add(c);
+    bakeMesh(c, centerGeos, POLLEN, 0.04);
+    const stGeo = new THREE.SphereGeometry(0.013 * scale, 8, 6);
+    for(let i = 0; i < 7; i++){
+      const st = new THREE.Mesh(stGeo);
+      const a = i / 7 * Math.PI * 2;
+      st.position.set(Math.cos(a) * 0.035 * scale, Math.sin(a) * 0.035 * scale, 0.058 * scale);
+      head.add(st);
+      bakeMesh(st, centerGeos, POLLEN_DEEP, 0.08);
+    }
+    bakeRoot.remove(head);
+  }
+
+  function buildBud(angle){
+    const bs = 0.16 + rng() * 0.07;
+    const holder = new THREE.Group();
+    const out = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+    const dir = out.clone().multiplyScalar(0.75).addScaledVector(UP, 0.5).normalize();
+    holder.position.set(out.x * (R - 0.01), Math.sin(angle * 2 + 0.7) * 0.02, out.z * (R - 0.01));
+    holder.quaternion.setFromUnitVectors(UP, dir);
+    holder.rotateY(rng() * Math.PI * 2);
+    bakeRoot.add(holder);
+
+    const pts = [[0.001,0],[0.30,0.06],[0.62,0.28],[0.80,0.62],[0.66,0.86],[0.34,0.98],[0.001,1.04]]
+      .map(p => new THREE.Vector2(p[0] * bs, p[1] * bs));
+    const body = new THREE.Mesh(new THREE.LatheGeometry(pts, 12)); holder.add(body);
+    bakeMesh(body, budGeos, BUD, 0.05);
+
+    const sepal = makeLeafGeometry(bs * 1.1, bs * 0.5, 4, 6);
+    for(let k = 0; k < 3; k++){
+      const s = new THREE.Mesh(sepal);
+      s.rotation.order = 'ZXY';
+      s.rotation.set(0.9, 0, k * 2.094);
+      s.position.y = 0.02;
+      holder.add(s);
+      bakeMesh(s, leafGeos, new THREE.Color().setHSL(0.25, 0.38, 0.30), 0.08);
+    }
+    bakeRoot.remove(holder);
+  }
+
+  function buildRingLeaf(angle){
+    const L = 0.5 + rng() * 0.28;
+    const m = new THREE.Mesh(makeLeafGeometry(L, L * 0.46, 5, 9));
+    const out = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+    const upC = 0.15 + rng() * 0.5 - (rng() < 0.3 ? 0.45 : 0);
+    const dir = out.clone().addScaledVector(UP, upC).normalize();
+    m.position.set(out.x * (R - 0.02), Math.sin(angle * 2.4) * 0.03 - 0.01, out.z * (R - 0.02));
+    m.quaternion.setFromUnitVectors(UP, dir);
+    m.rotateY(rng() * Math.PI * 2);
+    bakeRoot.add(m);
+    bakeMesh(m, leafGeos, new THREE.Color().setHSL(0.23 + rng() * 0.07, 0.30 + rng() * 0.18, 0.30 + rng() * 0.14), 0.04);
+    bakeRoot.remove(m);
+  }
+
+  for(let i = 0; i < 7; i++) buildFlower((i + 0.35 + rng() * 0.3) / 7 * Math.PI * 2, 0.9 + rng() * 0.45, PALETTE[i % PALETTE.length]);
+  for(let i = 0; i < 5; i++) buildBud(((i + 0.5) / 5) * Math.PI * 2 + 0.63);
+  for(let i = 0; i < 16; i++) buildRingLeaf((i + rng()) / 16 * Math.PI * 2);
+
+  const crown = new THREE.Group();
+  const mk = (geos, mat) => {
+    const mesh = new THREE.Mesh(mergeGeometries(geos, false), mat);
+    mesh.castShadow = mesh.receiveShadow = true;
+    crown.add(mesh);
+  };
+  mk(petalGeos, petalMat); mk(centerGeos, pollenMat); mk(leafGeos, leafMat); mk(budGeos, petalMat);
+  [core, v1, v2].forEach(m => { m.castShadow = m.receiveShadow = true; crown.add(m); });
+  return crown;
+}
+
+/* ---------------------------------------------------------- cap construction */
+
+function buildCap(domeMat, brimMat, threadMat, brassMat){
+  const cap = new THREE.Group();
+
+  let domeGeo = new THREE.SphereGeometry(1, 64, 36, 0, Math.PI * 2, 0, 2.06);
+  domeGeo.rotateY(-Math.PI / 6);            // a seam lands dead-centre front
+  domeGeo.scale(0.985, 0.80, 1.0);
+  const dome = new THREE.Mesh(domeGeo, domeMat);
+
+  const bindGeo = new THREE.TorusGeometry(0.878, 0.026, 10, 96); bindGeo.rotateX(Math.PI / 2);
+  const binding = new THREE.Mesh(bindGeo, brimMat); binding.position.y = -0.375;
+
+  // visor: drawn as a 2D profile, extruded with a soft bevel, then drooped
+  const a = 0.86, L = 1.60, half = THREE.MathUtils.degToRad(76);
+  const a0 = Math.PI / 2 - half, a1 = Math.PI / 2 + half;
+  const shape = new THREE.Shape();
+  shape.absarc(0, 0, a, a0, a1, false);
+  shape.bezierCurveTo(-a * 1.28, L * 0.55, -a * 0.62, L, 0, L);
+  shape.bezierCurveTo(a * 0.62, L, a * 1.28, L * 0.55, a * Math.cos(a0), a * Math.sin(a0));
+  const brimGeo = new THREE.ExtrudeGeometry(shape, {
+    depth: 0.045, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.026,
+    bevelSegments: 3, curveSegments: 48, steps: 1
+  });
+  brimGeo.rotateX(Math.PI / 2);
+  brimGeo.translate(0, 0.0125, 0);
+  bendBrim(brimGeo);
+  const brim = new THREE.Mesh(brimGeo, brimMat); brim.position.y = -0.412;
+
+  // bound edge — a pipe swept along the very same outline, bent the same way
+  const pts = shape.getPoints(120).map(p => new THREE.Vector3(p.x, -0.02, p.y));
+  const pipeGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true, 'catmullrom', 0.5), 420, 0.016, 8, true);
+  bendBrim(pipeGeo);
+  const pipe = new THREE.Mesh(pipeGeo, threadMat); pipe.position.y = -0.412;
+
+  const capOnly = new THREE.Group();
+  capOnly.add(dome, binding, brim, pipe);
+  capOnly.rotation.set(-0.14, 0, 0.05);     // tipped back so the embroidery reads
+  [dome, binding, brim, pipe].forEach(o => {
+    o.castShadow = o.receiveShadow = true;
+  });
+  cap.add(capOnly);
+  return cap;
+}
+
+/* ----------------------------------------------------------- hat construction */
+
+function buildHat(feltMat, satinMat, linerMat){
+  const hat = new THREE.Group();
+
+  const brimPts = [
+    [0.585,-0.040],[0.85,-0.036],[1.10,-0.026],[1.30,-0.008],[1.43,0.018],
+    [1.51,0.055],[1.555,0.105],[1.565,0.150],[1.55,0.180],[1.52,0.190],
+    [1.47,0.155],[1.40,0.115],[1.30,0.075],[1.15,0.050],[0.95,0.038],[0.75,0.032],[0.585,0.030]
+  ].map(p => new THREE.Vector2(p[0], p[1]));
+  const brim = new THREE.Mesh(new THREE.LatheGeometry(brimPts, 128), feltMat);
+
+  const crownPts = [
+    [0.655,0.00],[0.660,0.05],[0.652,0.30],[0.646,0.70],[0.648,1.05],[0.656,1.25],
+    [0.660,1.34],[0.652,1.42],[0.630,1.475],[0.595,1.510],[0.550,1.528],[0.500,1.536],
+    [0.440,1.538],[0.360,1.534],[0.260,1.530],[0.160,1.528],[0.080,1.528],[0.000,1.528]
+  ].map(p => new THREE.Vector2(p[0], p[1]));
+  const crown = new THREE.Mesh(new THREE.LatheGeometry(crownPts, 128), feltMat);
+
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.6645, 0.6705, 0.235, 96, 1, true), satinMat);
+  band.material.side = THREE.DoubleSide;
+  band.position.y = 0.145;
+
+  const linerGeo = new THREE.CircleGeometry(0.63, 64); linerGeo.rotateX(-Math.PI / 2);
+  const liner = new THREE.Mesh(linerGeo, linerMat); liner.position.y = 0.05;
+
+  hat.add(brim, crown, band, liner);
+  hat.children.forEach(o => { o.castShadow = o.receiveShadow = true; });
+  return hat;
+}
+
+/* ------------------------------------------------------------------- main */
+
+async function main(){
+  renderer = new THREE.WebGPURenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.06;
+  renderer.shadowMap.enabled = true;
+  document.body.appendChild(renderer.domElement);
+  await renderer.init();
+
+  document.getElementById('badge').textContent =
+    (renderer.backend && renderer.backend.isWebGPUBackend) ? 'WebGPU · three.js TSL' : 'WebGL2 fallback · three.js TSL';
+
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0xe6decd, 18, 46);
+  scene.backgroundNode = mix(color(0xf0e9db), color(0xc3b599), smoothstep(0.35, 0.95, screenUV.y));
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(buildEnvScene(), 0.04).texture;
+  scene.environmentIntensity = 0.6;
+  pmrem.dispose();
+
+  camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 120);
+  camera.position.set(11, 4.8, 13.5);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.minDistance = 2.2; controls.maxDistance = 18;
+  controls.maxPolarAngle = 1.46;
+  controls.target.set(0, 1.4, 0);
+  controls.addEventListener('start', () => { transitioning = false; });
+
+  // lights
+  const key = new THREE.DirectionalLight(0xfff0dc, 2.4);
+  key.position.set(5, 8, 6);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, { left: -8.5, right: 8.5, top: 8.5, bottom: -8.5, near: 1, far: 30 });
+  key.shadow.camera.updateProjectionMatrix();   // bake the ortho frustum
+  key.shadow.bias = -0.0008; key.shadow.normalBias = 0.02;
+  const rim = new THREE.DirectionalLight(0xe6ddd0, 0.9); rim.position.set(-7, 5, -6);
+  const hemi = new THREE.HemisphereLight(0xf2e9d8, 0xb0a288, 0.45);
+  scene.add(key, rim, hemi);
+
+  // materials shared across the pieces
+  const petalMat = makePetalMaterial(), leafMat = makeLeafMaterial(), vineMat = makeVineMaterial();
+  const pollenMat = makePollenMaterial(), domeMat = makeDomeMaterial(), brimMat = makeBrimMaterial();
+  const threadMat = makeThreadMaterial(), feltMat = makeFeltMaterial(), satinMat = makeSatinMaterial();
+  const brassMat = makeStandardPlain(0xb6934f, 0.32, 30, 0.15); brassMat.metalness = 1;
+  const linerMat = makeStandardPlain(0x241b13, 0.5, 20, 0.3);
+
+  const itemsRoot = new THREE.Group(); scene.add(itemsRoot);
+
+  function register(index, group, spin, content){
+    group.traverse(o => { o.userData.itemIndex = index; });
+    itemsRoot.add(group);
+    items.push({ group, spin, content, def: ITEM_DEFS[index], speed: 0 });
+  }
+
+  // 01 — flower crown
+  {
+    const g = new THREE.Group(); g.position.set(-3.6, 0.95, 0.15);
+    const spinner = new THREE.Group();
+    const tilt = new THREE.Group(); tilt.rotation.set(-0.18, 0, 0.04);
+    const crown = buildCrown(petalMat, leafMat, vineMat, pollenMat);
+    crown.scale.setScalar(1.5);
+    tilt.add(crown); spinner.add(tilt); g.add(spinner);
+    register(0, g, spinner, crown);
+  }
+
+  // 02 — baseball cap
+  {
+    const g = new THREE.Group(); g.position.set(3.6, 1.31, 0.15);
+    const spinner = new THREE.Group();
+    const cap = buildCap(domeMat, brimMat, threadMat, brassMat);
+    spinner.add(cap); g.add(spinner);
+    register(1, g, spinner, cap);
+  }
+
+  // 03 — top hat
+  {
+    const g = new THREE.Group(); g.position.set(0, 1.492, -0.15);
+    const spinner = new THREE.Group();
+    const tilt = new THREE.Group(); tilt.rotation.set(0.03, 0, 0.05);
+    const hat = buildHat(feltMat, satinMat, linerMat);
+    tilt.add(hat); spinner.add(tilt); g.add(spinner);
+    register(2, g, spinner, hat);
+  }
+
+  /* ------------------------------------------------------------ interaction */
+
+  const cardNum = document.getElementById('cardNum');
+  const cardName = document.getElementById('cardName');
+  const cardNote = document.getElementById('cardNote');
+  const menuBtns = [...document.querySelectorAll('#menu button')];
+
+  function updateCard(i){
+    if(i < 0){
+      cardNum.textContent = '№ —';
+      cardName.innerHTML = 'The Milliner&rsquo;s Table';
+      cardNote.textContent = DEFAULT_NOTE;
+    } else {
+      cardNum.textContent = ITEM_DEFS[i].num;
+      cardName.textContent = ITEM_DEFS[i].name;
+      cardNote.textContent = ITEM_DEFS[i].note;
+    }
+    menuBtns.forEach(b => b.classList.toggle('active', +b.dataset.id === i));
+  }
+
+  function goTo(target, dist){
+    desired.target.copy(target);
+    const dir = camera.position.clone().sub(target);
+    if(dir.lengthSq() < 1e-4) dir.set(0.4, 0.3, 1);
+    dir.normalize();
+    desired.pos.copy(target).addScaledVector(dir, dist);
+    transitioning = true;
+  }
+  function select(i){
+    selected = i;
+    const d = ITEM_DEFS[i];
+    goTo(tmpV.set(d.focus[0], d.focus[1], d.focus[2]), d.dist);
+    updateCard(i);
+  }
+  function overview(){
+    selected = -1;
+    goTo(tmpV.set(0, 1.4, 0), 11.2);
+    updateCard(-1);
+  }
+
+  function pick(e){
+    pointerNDC.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    raycaster.setFromCamera(pointerNDC, camera);
+    const hits = raycaster.intersectObjects(itemsRoot.children, true);
+    return hits.length ? (hits[0].object.userData.itemIndex ?? -1) : -1;
+  }
+
+  let px0 = 0, py0 = 0;
+  renderer.domElement.addEventListener('pointerdown', e => { px0 = e.clientX; py0 = e.clientY; });
+  renderer.domElement.addEventListener('pointerup', e => {
+    if(Math.hypot(e.clientX - px0, e.clientY - py0) > 7) return;
+    const i = pick(e);
+    i >= 0 ? select(i) : overview();
+  });
+  renderer.domElement.addEventListener('pointermove', e => {
+    hovered = pick(e);
+    renderer.domElement.style.cursor = hovered >= 0 ? 'pointer' : 'grab';
+  });
+
+  menuBtns.forEach(b => b.addEventListener('click', () => select(+b.dataset.id)));
+  const spinBtn = document.getElementById('spinBtn');
+  spinBtn.addEventListener('click', () => {
+    spinOn = !spinOn;
+    spinBtn.textContent = 'Turntable · ' + (spinOn ? 'On' : 'Off');
+  });
+  addEventListener('keydown', e => {
+    if(e.key === '1') select(0);
+    if(e.key === '2') select(1);
+    if(e.key === '3') select(2);
+    if(e.key === 'Escape') overview();
+    if(e.key === ' ') spinBtn.click();
+  });
+
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  /* ------------------------------------------------------------------ loop */
+
+  updateCard(-1);
+  goTo(tmpV.set(0, 1.4, 0), 11.2);   // cinematic settle from the far start
+  const clock = new THREE.Clock();
+  let frames = 0;
+  const loaderEl = document.getElementById('loader');
+
+  renderer.setAnimationLoop(() => {
+    const dt = Math.min(clock.getDelta(), 0.05);
+    items.forEach((it, i) => {
+      const goal = (spinOn ? 1 : 0) * (hovered === i ? 2.8 : 1);
+      it.speed += (goal - it.speed) * Math.min(1, dt * 4);
+      it.spin.rotation.y += dt * it.def.spin * it.speed;
+      const s = hovered === i ? 1.035 : 1;
+      it.spin.scale.lerp(tmpV.set(s, s, s), Math.min(1, dt * 8));
+    });
+    if(transitioning){
+      const k = 1 - Math.exp(-dt * 3.0);
+      controls.target.lerp(desired.target, k);
+      camera.position.lerp(desired.pos, k);
+      if(camera.position.distanceTo(desired.pos) < 0.01) transitioning = false;
+    }
+    controls.update();
+    renderer.render(scene, camera);
+    if(++frames === 3) loaderEl.classList.add('done');
+  });
+}
+
+main().catch(err => {
+  console.error(err);
+  document.querySelector('.l-sub').textContent = 'something went wrong — see console';
+});
+</script>
+</body>
+</html>

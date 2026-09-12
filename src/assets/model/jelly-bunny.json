@@ -1,0 +1,93 @@
+{
+  "sourceHash": "309fcc32c1b66706effc3ae873fe01360671ec5bc8dc711cf2a5e1a60530aa91",
+  "scale": 0.030773959076158458,
+  "bottom": -0.9461735486984253,
+  "volume": 0.00002565582416785147,
+  "layout": {
+    "positions": {
+      "offset": 0,
+      "length": 75678,
+      "type": "Float32Array"
+    },
+    "normals": {
+      "offset": 302712,
+      "length": 75678,
+      "type": "Float32Array"
+    },
+    "indices": {
+      "offset": 605424,
+      "length": 151344,
+      "type": "Uint32Array"
+    },
+    "particles": {
+      "offset": 1210800,
+      "length": 801,
+      "type": "Float64Array"
+    },
+    "tets": {
+      "offset": 1217208,
+      "length": 3432,
+      "type": "Uint32Array"
+    },
+    "volumes": {
+      "offset": 1230936,
+      "length": 858,
+      "type": "Float64Array"
+    },
+    "bindingIds": {
+      "offset": 1237800,
+      "length": 100904,
+      "type": "Uint32Array"
+    },
+    "bindingWeights": {
+      "offset": 1641416,
+      "length": 100904,
+      "type": "Float64Array"
+    },
+    "tetIds": {
+      "offset": 2448648,
+      "length": 25226,
+      "type": "Uint32Array"
+    },
+    "contacts": {
+      "offset": 2549552,
+      "length": 670,
+      "type": "Uint32Array"
+    },
+    "opticalPositions": {
+      "offset": 2552232,
+      "length": 10470,
+      "type": "Float32Array"
+    },
+    "opticalNormals": {
+      "offset": 2594112,
+      "length": 10470,
+      "type": "Float32Array"
+    },
+    "opticalIndices": {
+      "offset": 2635992,
+      "length": 20928,
+      "type": "Uint32Array"
+    },
+    "opticalBindingIds": {
+      "offset": 2719704,
+      "length": 13960,
+      "type": "Uint32Array"
+    },
+    "opticalBindingWeights": {
+      "offset": 2775544,
+      "length": 13960,
+      "type": "Float64Array"
+    },
+    "thicknessIds": {
+      "offset": 2887224,
+      "length": 75678,
+      "type": "Uint32Array"
+    },
+    "thicknessWeights": {
+      "offset": 3189936,
+      "length": 75678,
+      "type": "Float32Array"
+    }
+  }
+}

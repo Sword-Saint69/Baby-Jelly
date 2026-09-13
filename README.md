@@ -56,14 +56,14 @@ npm run test:facility-sound
 For Software:
 
 # Screenshots
-![Screenshot1](public/og_image.png)
-*Jelly Baby chilling on the table - the main playground with swing, trampoline, bed and scattered toys*
+![Screenshot1](public/screenshot/Screenshot%202026-09-13%20095940.png)
+*Main playground - Jelly Baby on the table with swing, trampoline, bed and toys*
 
-![Screenshot2](docs/screenshot-slide.png)
-*Our new addition: The Timber Slide in the north-west - climb the ladder, perch, and WHOOSH down with laughing physics*
+![Screenshot2](public/screenshot/Screenshot%202026-09-13%20095956.png)
+*Slide in action - Ladder climb and teal chute in the north-west corner*
 
-![Screenshot3](docs/screenshot-seesaw.png)
-*The new Seesaw on the east side - it auto-pumps, creaks, and makes the jelly giggle past 15 degrees*
+![Screenshot3](public/screenshot/Screenshot%202026-09-13%20100010.png)
+*Seesaw rocking - Timber plank on the east side with jelly laughing at high angles*
 
 # Diagrams
 ![Workflow](docs/workflow.png)
@@ -74,11 +74,12 @@ For Hardware:
 
 ### Project Demo
 # Video
-[Add your demo video link here - e.g. https://youtu.be/YOUR_VIDEO_ID]
+https://youtu.be/jgsrSXtFiG0
 *Demo shows: Poking and dragging the jelly (custom drag.mp3 loops), bonking into blocks (collide.mp3), riding the Swing, bouncing on the Trampoline, climbing & sliding down the new Slide, and rocking the new Seesaw until it laughs.*
 
 # Additional Demos
-- Live Demo: `npm run dev` and open http://localhost:5173
+- Live Demo: https://baby-phi-seven.vercel.app
+- Local: `npm run dev` and open http://localhost:5173
 - Try dragging with mouse, pressing `E` near each equipment, and `Space` to hop!
 
 ## What's New (We Added)
